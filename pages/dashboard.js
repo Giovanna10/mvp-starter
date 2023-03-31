@@ -70,6 +70,7 @@ const ERROR_MAP = {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { authUser, isLoading } = useAuth();
   const [action, setAction] = useState(RECEIPTS_ENUM.none);
 
   // State involved in loading, setting, deleting, and updating receipts
@@ -91,6 +92,13 @@ export default function Dashboard() {
     isSuccess ? setSuccessSnackbar(true) : setErrorSnackbar(true);
     setAction(RECEIPTS_ENUM.none);
   };
+
+  // Listen to changes for loading and authUser, redirect if needed
+  useEffect(() => {
+    if (!isLoading && !authUser) {
+      router.push("/");
+    }
+  }, [authUser, isLoading]);
 
   // For all of the onClick functions, update the action and fields for updating
 
@@ -115,7 +123,12 @@ export default function Dashboard() {
     setDeleteReceiptId("");
   };
 
-  return (
+  return !authUser ? (
+    <CircularProgress
+      color="inherit"
+      sx={{ marginLeft: "50%", marginTop: "25%" }}
+    />
+  ) : (
     <div>
       <Head>
         <title>Expense Tracker</title>

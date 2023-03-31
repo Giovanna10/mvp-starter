@@ -28,12 +28,38 @@ import {
   Typography,
 } from "@mui/material";
 import styles from "../styles/landing.module.scss";
+import { useAuth } from "../firebase/auth";
+import { auth } from "../firebase/firebase";
+
+const REDIRECT_PAGE = "/dashboard";
+
+//Configure FirebaseUI
+const uiConfig = {
+  signInFlow: "popup", //signIn flow with popup rather than redirect flow
+  signInSuccessUrl: REDIRECT_PAGE,
+  signInOptions: [
+    EmailAuthProvider.PROVIDER_ID,
+    GoogleAuthProvider.PROVIDER_ID,
+  ],
+};
 
 export default function Home() {
   const router = useRouter();
+  const { authUser, isLoading } = useAuth();
   const [login, setLogin] = useState(false);
 
-  return (
+  useEffect(() => {
+    if (!isLoading && authUser) {
+      router.push("/dashboard");
+    }
+  }, [isLoading, authUser]);
+
+  return isLoading || !!authUser ? (
+    <CircularProgress
+      color="inherit"
+      sx={{ marginLeft: "50%", marginTop: "25%" }}
+    />
+  ) : (
     <div>
       <Head>
         <title>Expense Tracker</title>
@@ -46,10 +72,20 @@ export default function Home() {
             Add, view, edit, and delete expenses
           </Typography>
           <div className={styles.buttons}>
-            <Button variant="contained" color="secondary">
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={() => setLogin(true)}
+            >
               Login / Register
             </Button>
           </div>
+          <Dialog open={login} onClose={() => setLogin(false)}>
+            <StyledFirebaseAuth
+              uiConfig={uiConfig}
+              firebaseAuth={auth}
+            ></StyledFirebaseAuth>
+          </Dialog>
         </Container>
       </main>
     </div>
