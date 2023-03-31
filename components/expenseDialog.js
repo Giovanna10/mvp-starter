@@ -33,6 +33,7 @@ import { addReceipt, updateReceipt } from "../firebase/firestore";
 import { replaceImage, uploadImage } from "../firebase/storage";
 import { RECEIPTS_ENUM } from "../pages/dashboard";
 import styles from "../styles/expenseDialog.module.scss";
+import { useAuth } from "../firebase/auth";
 
 const DEFAULT_FILE_NAME = "No file selected";
 
@@ -58,6 +59,7 @@ const DEFAULT_FORM_STATE = {
   - onCloseDialog emits to close dialog
  */
 export default function ExpenseDialog(props) {
+  const { authUser } = useAuth();
   const isEdit = Object.keys(props.edit).length > 0;
   const [formFields, setFormFields] = useState(
     isEdit ? props.edit : DEFAULT_FORM_STATE
@@ -98,6 +100,18 @@ export default function ExpenseDialog(props) {
   const closeDialog = () => {
     setIsSubmitting(false);
     props.onCloseDialog();
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      await uploadImage(formFields.file, authUser.uid);
+      props.onSuccess(RECEIPTS_ENUM.add);
+    } catch {
+      props.onError(RECEIPTS_ENUM.add);
+    }
+
+    closeDialog();
   };
 
   return (
@@ -181,7 +195,12 @@ export default function ExpenseDialog(props) {
             Submitting...
           </Button>
         ) : (
-          <Button color="secondary" variant="contained" disabled={isDisabled()}>
+          <Button
+            color="secondary"
+            variant="contained"
+            disabled={isDisabled()}
+            onClick={handleSubmit}
+          >
             Submit
           </Button>
         )}
