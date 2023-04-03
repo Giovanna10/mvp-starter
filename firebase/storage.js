@@ -34,3 +34,14 @@ export const uploadImage = async (image, uid) => {
   await uploadBytes(storageRef, image);
   return bucket;
 };
+
+export const getDownloadURL = async (bucket) =>
+  await getStorageDownloadURL(ref(storage, bucket));
+
+export const replaceImage = async (image, bucket) => {
+  await uploadBytes(ref(storage, bucket), image);
+};
+
+export const deleteImage = (bucket) => {
+  deleteObject(ref(storage, bucket));
+};

@@ -15,6 +15,89 @@
  * limitations under the License.
  */
 
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, setDoc, where } from 'firebase/firestore'; 
-import { db } from './firebase';
-import { getDownloadURL } from './storage';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
+import { db } from "./firebase";
+import { getDownloadURL } from "./storage";
+
+const RECEIPTS_COLLECTION = "receipts";
+
+export const addReceipt = (
+  uid,
+  date,
+  locationName,
+  address,
+  items,
+  amount,
+  imageBucket
+) => {
+  addDoc(collection(db, RECEIPTS_COLLECTION), {
+    uid,
+    date,
+    locationName,
+    address,
+    items,
+    amount,
+    imageBucket,
+  });
+};
+
+export const getReceipts = async (uid, setReceipts, setIsLoadingReceipts) => {
+  const receiptsQuery = query(
+    collection(db, RECEIPTS_COLLECTION),
+    where("uid", "==", uid),
+    orderBy("date", "desc")
+  );
+  //per tenere traccia degli aggiornamenti in tempo reale
+  //usiamo onSnapshot al posto di getDocs
+  // const querySnapshot = await getDocs(receiptsQuery);
+  const unsubscribe = onSnapshot(receiptsQuery, async (snapshot) => {
+    let allReceipts = [];
+    for (const documentSnapshot of snapshot.docs) {
+      const receipt = documentSnapshot.data();
+      await allReceipts.push({
+        ...receipt,
+        date: receipt["date"].toDate(),
+        id: documentSnapshot.id,
+        imageUrl: await getDownloadURL(receipt["imageBucket"]), //see getDownloadUrl in storage.js for download URL of the image bucket
+      });
+    }
+    setReceipts(allReceipts);
+    setIsLoadingReceipts(false);
+  });
+  return unsubscribe;
+};
+
+export const updateReceipt = (
+  docId,
+  uid,
+  date,
+  locationName,
+  address,
+  items,
+  amount,
+  imageBucket
+) => {
+  setDoc(doc(db, RECEIPTS_COLLECTION, docId), {
+    uid,
+    date,
+    locationName,
+    address,
+    items,
+    amount,
+    imageBucket,
+  });
+};
+
+export const deleteReceipt = (id) => {
+  deleteDoc(doc(db, RECEIPTS_COLLECTION, id));
+};
