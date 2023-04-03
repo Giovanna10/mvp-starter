@@ -77,12 +77,27 @@ export default function Dashboard() {
   const [isLoadingReceipts, setIsLoadingReceipts] = useState(true);
   const [deleteReceiptId, setDeleteReceiptId] = useState("");
   const [deleteReceiptImageBucket, setDeleteReceiptImageBucket] = useState("");
+  const [receipts, setReceipts] = useState([]);
   const [updateReceipt, setUpdateReceipt] = useState({});
 
   // State involved in snackbar
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showSuccessSnackbar, setSuccessSnackbar] = useState(false);
   const [showErrorSnackbar, setErrorSnackbar] = useState(false);
+
+  // Get receipts once user is logged in
+  useEffect(async () => {
+    if (authUser) {
+      //per avere un aggiornamento in tempo reale utilizziamo la nuova fun
+      // setReceipts(await getReceipts(authUser.uid));
+      const unsubscribe = await getReceipts(
+        authUser.uid,
+        setReceipts,
+        setIsLoadingReceipts
+      );
+      return () => unsubscribe();
+    }
+  }, [authUser]);
 
   // Sets appropriate snackbar message on whether @isSuccess and updates shown receipts if necessary
   const onResult = async (receiptEnum, isSuccess) => {
@@ -121,6 +136,19 @@ export default function Dashboard() {
   const resetDelete = () => {
     setAction(RECEIPTS_ENUM.none);
     setDeleteReceiptId("");
+  };
+
+  const onDelete = async () => {
+    let isSucceed = true;
+    try {
+      await deleteReceipt(deleteReceiptId);
+      await deleteImage(deleteReceiptImageBucket);
+    } catch (error) {
+      isSucceed = false;
+    }
+
+    resetDelete();
+    onResult(RECEIPTS_ENUM.delete, isSucceed);
   };
 
   return !authUser ? (
@@ -172,6 +200,16 @@ export default function Dashboard() {
             <AddIcon />
           </IconButton>
         </Stack>
+        {receipts.map((receipt) => (
+          <div key={receipt.id}>
+            <Divider light />
+            <ReceiptRow
+              receipt={receipt}
+              onEdit={() => onUpdate(receipt)}
+              onDelete={() => onClickDelete(receipt.id, receipt.imageBucket)}
+            />
+          </div>
+        ))}
       </Container>
       <ExpenseDialog
         edit={updateReceipt}
@@ -195,7 +233,12 @@ export default function Dashboard() {
           <Button color="secondary" variant="outlined" onClick={resetDelete}>
             Cancel
           </Button>
-          <Button color="secondary" variant="contained" autoFocus>
+          <Button
+            color="secondary"
+            variant="contained"
+            autoFocus
+            onClick={onDelete}
+          >
             Delete
           </Button>
         </DialogActions>
